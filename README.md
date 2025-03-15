@@ -62,11 +62,11 @@ This project focuses on **building a full-scale Business Intelligence (BI) syste
 
 🖼 **ERD Diagram:**
 
-![ERD Diagram](images/erd-diagram.png)
+![ERD Diagram](Images/erd-diagram.png)
 
 🖼 **Data Warehouse Schema (Star Schema):**
 
-![Star Schema](images/star-scheme.png)
+![Star Schema](Images/star-scheme.png)
 
 ---
 
@@ -81,7 +81,7 @@ This project focuses on **building a full-scale Business Intelligence (BI) syste
 
 🖼 **ETL Process Flow:**
 
-![ETL Process](images/etl-process.png)
+![ETL Process](Images/etl-process.png)
 
 
 ---
@@ -106,7 +106,7 @@ This project focuses on **building a full-scale Business Intelligence (BI) syste
 
 🖼 **Visualizations Sample (interactive dashboard):**
 
-![Advanced Visualizations](images/advanced-visualizations_preview.png)
+![Advanced Visualizations](Images/advanced-visualizations_preview.png)
 
 
 ---
@@ -118,7 +118,7 @@ This project focuses on **building a full-scale Business Intelligence (BI) syste
 
 🖼 **OLAP Chart:**
 
-![OLAP](images/OLAP-preview.png)
+![OLAP](Images/OLAP-preview.png)
 
 
 ---
