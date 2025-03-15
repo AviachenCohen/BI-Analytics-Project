@@ -1,0 +1,288 @@
+
+
+USE Exelot_BI_Project
+-- CHECK INCREMENTAL LOADING FOR ORDERS
+INSERT INTO ORDERS
+	VALUES
+	(8910, 8912, 14, 261552300, '01/09/2023', 1480, 'Pick Up',
+	200, 20, 220, '05/09/2023', '05/09/2023', 5);
+
+	USE Exelot_BI_Project
+	SELECT * FROM ORDERS
+
+	USE Exelot_BI_Project
+	DELETE FROM ORDERS WHERE [DW ORDER] = 8910
+	----------------
+USE Exelot_BI_Project
+-- CHECK INCREMENTAL LOADING FOR PARCELS
+INSERT INTO PARCELS
+	VALUES
+	(12030, 8912, 14, 1, 1, 10, '05/09/2023');
+
+	USE Exelot_BI_Project
+	SELECT * FROM PARCELS
+
+	USE Exelot_BI_Project
+	DELETE FROM PARCELS WHERE ID = 12030
+	-----------------------------------MRR DB---------------------------------
+USE MRR_Exelot_Project
+	SELECT * FROM MRR_ORDERS
+	
+USE MRR_Exelot_Project
+	SELECT * FROM MRR_PARCELS
+
+
+USE MRR_Exelot_Project
+	TRUNCATE TABLE MRR_PARCELS
+	TRUNCATE TABLE MRR_ORDERS
+
+	-----------------------------------STG DB---------------------------------
+USE STG_Exelot_Project
+	SELECT * FROM STG_ORDERS
+
+	TRUNCATE TABLE STG_ORDERS
+
+USE STG_Exelot_Project
+	SELECT * FROM STG_PARCELS
+
+	TRUNCATE TABLE STG_PARCELS
+	
+	-----------------------------------DW DB--------------------------------
+	USE DW_Exelot_Project
+	TRUNCATE TABLE DW_FACT_ORDERS
+	TRUNCATE TABLE DW_FACT_PARCELS
+
+USE DW_Exelot_Project
+	SELECT * FROM DW_FACT_ORDERS
+USE DW_Exelot_Project
+	SELECT * FROM DW_FACT_PARCELS
+
+
+
+
+
+
+
+
+
+
+
+
+	----------------------------------------------------------
+	--TESTS FOR SCD TYPE 2
+
+	-- SHOW EXISTING RECORDS IN OPERATIONL DB
+	USE Exelot_BI_Project
+	SELECT * FROM DISTRIBUTORS
+
+	-- SHOW EXISTING RECORDS IN DW
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_DIM_DISTRIBUTORS
+
+	-- change handling for distributor id = 10
+	USE Exelot_BI_Project
+	UPDATE DISTRIBUTORS
+	SET Handling = 2
+	WHERE DISTRIBUTORS.ID = 10
+
+	--SHOW CHANGE IN HANDLING FOR DISTRIBUTOR NUMBER 10(ORIAN) IN OPERATIONL DB
+	USE Exelot_BI_Project
+	SELECT * FROM DISTRIBUTORS
+
+	--IN TABLEAU:
+	--STEP1: RUN MRR FILE
+
+	--STEP2: RUN STG FILE FOR DIMENSIONS
+
+	--STEP3: RUN BOTH DW FILE FOR DIMENSIONS
+
+	--SHOW CHANGE IN HANDLING FOR DISTRIBUTOR NUMBER 10(ORIAN) IN DW
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_DIM_DISTRIBUTORS
+
+	--IN TABLEAU:
+	--STEP4: RUN STG FILE FOR FACTS
+
+	--STEP6: RUN DW FILE FOR FACTS
+
+	--SHOW ALL PAST PARCELS RELATED TO [DISTRIBUTOR ID] = 10 -> ARE UPDATED TO [DW DISTRIBUTOR] NUMBER 4,
+	--NOT THE NEW VERSION (  [DW DISTRIBUTOR] NUMBER 13  )
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_PARCELS WHERE [DW Distributor] = 4
+
+
+	-- ADDING A NEW ORDER TO OPERATINAL DB
+	USE Exelot_BI_Project
+	INSERT INTO ORDERS
+	VALUES
+	(8910, 8912, 14, 261552300, '2023/09/16', 1480, 'Pick Up',
+	200, 20, 220, '2023/09/16', '2023/09/16', 5);
+
+	-- ADDING A NEW PARCEL RELATED TO ORDER 8910 TO OPERATINAL DB
+	USE Exelot_BI_Project
+	INSERT INTO PARCELS
+	VALUES
+	(12030, 8912, 14, 10, 1, 5.5, '2023/09/16');
+
+	--IN TABLEAU:
+	--STEP1: RUN MRR FILE
+	--STEP4: RUN STG FILE FOR FACTS
+	--STEP6: RUN DW FILE FOR FACTS
+
+	--SHOW NEW PARCEL RECORD RELATED TO [DISTRIBUTOR ID] = 10 -> 
+	--IS UPDATED TO [DW DISTRIBUTOR] NUMBER 13,
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_PARCELS WHERE [DW Distributor] = 13
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_ORDERS WHERE [Order ID] = 8912
+
+DELETE FROM DW_FACT_PARCELS WHERE [Parcel ID] = 12030
+DELETE FROM DW_FACT_ORDERS WHERE [Order ID] = 8912
+DELETE FROM MRR_PARCELS WHERE ID = 12030
+DELETE FROM MRR_ORDERS WHERE [OrderID] = 8912
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+	---------------------------DW FOR SCD TYPE 2-------------------------------
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM OLD_VERSION_DISTRIBUTORS
+
+	USE Exelot_BI_Project
+	SELECT * FROM DISTRIBUTORS
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_DIM_DISTRIBUTORS
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_ORDERS
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_PARCELS
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_SUMMARY_YEARLY_PARCELS_BY_DISTRIBUTOR
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_SUMMARY_YEARLY_ORDERS_BY_SITE_AND_COUNTRY
+
+---------------------------RESET TABLE DISTRIBUTORS TO ORIGINAL DATA BEFORE CHANGE-------------------------------
+	USE Exelot_BI_Project
+	UPDATE DISTRIBUTORS
+	SET Handling = 1.52
+	WHERE DISTRIBUTORS.ID = 10
+
+	use MRR_For_Slowly_Changing_Dimension_Type2
+	truncate table mrr_DISTRIBUTORS
+	use STG_For_Slowly_Changing_Dimension_Type_2
+	truncate table stg_DISTRIBUTORS
+	use DW_For_Slowly_Changing_Dimension_Type2
+	truncate table dw_DIM_DISTRIBUTORS
+
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	SELECT * FROM STG_DISTRIBUTORS
+
+	----------------------------------------------------------
+	--CHECK ORDERS IN MRR & STG & DW
+	USE MRR_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM MRR_ORDERS
+
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	SELECT * FROM STG_ORDERS
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_ORDERS
+
+
+	--CHECK PARCELS IN MRR & STG & DW
+	USE MRR_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM MRR_PARCELS
+
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	SELECT * FROM STG_PARCELS
+
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_PARCELS
+
+
+
+	----------------------------------------------------------
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	select * from STG_PARCELS
+	--TESTS FOR REFERNTIAL INTEGRITY: REJECTED APPROACH
+	-- We want to enter a record to STG_PARCELS table, with a distributor that dosent exist:
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	INSERT INTO STG_PARCELS
+	VALUES
+	(12031, 23, 261552300, 1480, 18, -- 18 is the DW DISTRIBUTOR THAT DOSENT EXIST
+	100, 1, 10, 10, 0, '10/09/2023', 'USA', 'Israel');
+
+	--SHOW ME INCORRECT RECORD
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	SELECT * FROM STG_PARCELS WHERE [Parcel ID] = 12031
+
+	--NOW RUN THE TABLEAU FILE FOR REJECTED RECORDS--
+
+	--SHOW ME INCORRECT RECORD IN REJECTED TABLE IN DW
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_REJECTED_PARCELS
+
+	--SHOW ME INCORRECT RECORD DIDNT GET TO DW_PARCELS (NEED TO GET A BLANK TABLE)
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_PARCELS WHERE [Parcel ID] = 12031
+
+	--DELETE RECORD IF NEEDED TO RESTART TEST FOR STG STAGE
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	DELETE FROM STG_PARCELS WHERE [Parcel ID] = 12031
+	--DELETE RECORD IF NEEDED TO RESTART TEST FOR DW STAGE
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	DELETE FROM DW_FACT_REJECTED_PARCELS WHERE [Parcel ID] = 12031
+
+	------------------------------------------------------------------------
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	select * from STG_PARCELS
+
+
+	--TESTS FOR REFERNTIAL INTEGRITY: UNKNOWN APPROACH
+	-- We want to enter a record to STG_PARCELS table, with a distributor that dosent exist:
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	INSERT INTO STG_PARCELS
+	VALUES
+	(12032, 23, 261552300, 1480, 14, -- 14 is the DW DISTRIBUTOR THAT DOSENT EXIST
+	100, 1, 10, 10, 0, '10/09/2023', 'USA', 'Israel');
+
+	--SHOW ME INCORRECT RECORD
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	SELECT * FROM STG_PARCELS WHERE [Parcel ID] = 12032
+
+	--NOW RUN THE TABLEAU FILE FOR UNKNOWN RECORDS(first row and only then the second row)--
+
+	--SHOW ME UNKNOWN DISTRIBUTOR RECORD IN TABLE
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_DIM_DISTRIBUTORS WHERE [DW Distributor] = 14 
+
+	--SHOW ME RECORD WITH UNKNOWN DISTRIBUTOR IN DW_PARCELS
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	SELECT * FROM DW_FACT_PARCELS WHERE [Parcel ID] = 12032
+
+	--DELETE RECORD IF NEEDED TO RESTART TEST FOR STG STAGE
+	USE STG_For_Slowly_Changing_Dimension_Type_2
+	DELETE FROM STG_PARCELS WHERE [Parcel ID] = 12032
+	--DELETE RECORD IF NEEDED TO RESTART TEST FOR DW STAGE
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	DELETE FROM DW_DIM_DISTRIBUTORS WHERE [DW Distributor] = 14
+	--DELETE RECORD IF NEEDED TO RESTART TEST FOR DW STAGE
+	USE DW_For_Slowly_Changing_Dimension_Type2
+	DELETE FROM DW_FACT_PARCELS WHERE [Parcel ID] = 12032
